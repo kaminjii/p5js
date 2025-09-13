@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curated Generative Gallery</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&display=swap');
+        
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-y: scroll; 
+            background-color: #0a0a0a;
+            color: #f4f1eb;
+            font-family: 'Cormorant Garamond', serif;
+        }
+        body::-webkit-scrollbar { display: none; }
+        body { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        section {
+            height: 100vh;
+            width: 100vw;
+            scroll-snap-align: start;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .instructions {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            z-index: 10;
+            font-size: 14px;
+            font-weight: 300;
+            opacity: 0.8;
+            pointer-events: none;
+            letter-spacing: 0.5px;
+            color: #f4f1eb;
+        }
+        
+        .section-title {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            z-index: 10;
+            font-size: 24px;
+            font-weight: 400;
+            opacity: 0.9;
+            pointer-events: none;
+            letter-spacing: 1px;
+            color: #f4f1eb;
+        }
+        
+        .nav-indicator {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(244, 241, 235, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-dot.active {
+            background: #f4f1eb;
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav-indicator">
+        <div class="nav-dot active" data-section="0"></div>
+        <div class="nav-dot" data-section="1"></div>
+        <div class="nav-dot" data-section="2"></div>
+        <div class="nav-dot" data-section="3"></div>
+        <div class="nav-dot" data-section="4"></div>
+        <div class="nav-dot" data-section="5"></div>
+        <div class="nav-dot" data-section="6"></div>
+        <div class="nav-dot" data-section="7"></div>
+        <div class="nav-dot" data-section="8"></div>
+    </nav>
+
+    <main>
+        <section id="bismuth-crystals">
+            <div class="section-title">Bismuth Crystallization</div>
+            <div class="instructions">Watch the iridescent growth // Click to seed new crystals</div>
+            <div id="sketch0-container" class="canvas-container"></div>
+        </section>
+
+        <section id="verlet-cloth">
+            <div class="section-title">Verlet Integration</div>
+            <div class="instructions">Physics poetry in motion // Left-Click: Pluck | Right-Click: Tear</div>
+            <div id="sketch1-container" class="canvas-container"></div>
+        </section>
+
+        <section id="flow-field">
+            <div class="section-title">Vector Field</div>
+            <div class="instructions">Following invisible currents</div>
+            <div id="sketch2-container" class="canvas-container"></div>
+        </section>
+
+        <section id="game-of-life">
+            <div class="section-title">Conway's Cellular Automata</div>
+            <div class="instructions">Life emerging from simple rules // Click to draw. [Space] to evolve. [R] to reset.</div>
+            <div id="sketch3-container" class="canvas-container"></div>
+        </section>
+
+        <section id="interrobang">
+            <div class="section-title">Typographic Dynamics</div>
+            <div class="instructions">Disturbing the textual field // Move to displace</div>
+            <div id="sketch5-container" class="canvas-container"></div>
+        </section>
+
+        <section id="particle-advection">
+            <div class="section-title">Advection Simulation</div>
+            <div class="instructions">Luminous particles in flow // Stir the field</div>
+            <div id="sketch6-container" class="canvas-container"></div>
+        </section>
+
+        <section id="liquid-mirror">
+            <div class="section-title">Deformable Surface</div>
+            <div class="instructions">Rippling through dimensional space</div>
+            <div id="sketch7-container" class="canvas-container"></div>
+        </section>
+
+        <section id="selenium-field">
+            <div class="section-title">Selenium Photoconductive Field</div>
+            <div class="instructions">Light creates conductivity // Move to illuminate pathways</div>
+            <div id="sketch8-container" class="canvas-container"></div>
+        </section>
+    </main>
+
+    <script>
+    // --- AESTHETIC PALETTES ---
+    const rawSilkPalette = ['#f4f1eb', '#e8e2d4', '#d1c7b8', '#b8a995', '#9d8f7f'];
+    const tomatoLeafPalette = ['#4c7c54', '#5a8c62', '#689b70', '#76aa7e', '#84b98c'];
+    const figPalette = ['#7d8f69', '#6b7d57', '#596b45', '#475933', '#354721'];
+    const bismuthPalette = ['#c8b8db', '#b8a9d9', '#a799d6', '#9689d4', '#8579d1', '#7469ce'];
+    const apricityPalette = ['#ffd4a3', '#ffcd91', '#ffc67f', '#ffbf6d', '#ffb85b'];
+    const personalPalette = ['#ffc0cb', '#ffdab9', '#fdfd96', '#a8d8ea', '#a3b18a'];
+
+    // --- ENHANCED SKETCH 0: BISMUTH CRYSTALLIZATION ---
+    const sketch0 = (p) => {
+        let crystals = [];
+        let nucleationField = [];
+        let time = 0;
+        
+        class Crystal {
+            constructor(x, y, generation = 0) {
+                this.center = p.createVector(x, y);
+                this.points = [];
+                this.color = p.color(p.random(bismuthPalette));
+                this.size = p.random(20, 60) * (1 - generation * 0.2);
+                this.rotation = p.random(p.TWO_PI);
+                this.rotationSpeed = p.random(-0.01, 0.01);
+                this.maturity = 0;
+                this.generation = generation;
+                this.pulsePhase = p.random(p.TWO_PI);
+                this.generatePoints();
+            }
+            
+            generatePoints() {
+                const layers = p.floor(p.random(3, 7));
+                for (let layer = 0; layer < layers; layer++) {
+                    const layerRadius = (layer + 1) * (this.size / layers);
+                    const sides = p.floor(p.random(4, 8));
+                    const layerPoints = [];
+                    
+                    for (let i = 0; i < sides; i++) {
+                        const angle = (p.TWO_PI * i) / sides + this.rotation;
+                        const x = p.cos(angle) * layerRadius;
+                        const y = p.sin(angle) * layerRadius;
+                        layerPoints.push(p.createVector(x, y));
+                    }
+                    this.points.push(layerPoints);
+                }
+            }
+            
+            update() {
+                if (this.maturity < 1) {
+                    this.maturity += 0.005;
+                }
+                this.rotation += this.rotationSpeed;
+                this.pulsePhase += 0.02;
+                
+                // Spawn child crystals occasionally
+                if (this.maturity > 0.8 && p.random() > 0.998 && this.generation < 2) {
+                    let angle = p.random(p.TWO_PI);
+                    let distance = this.size * 1.5;
+                    let childX = this.center.x + p.cos(angle) * distance;
+                    let childY = this.center.y + p.sin(angle) * distance;
+                    
+                    if (childX > 0 && childX < p.width && childY > 0 && childY < p.height) {
+                        crystals.push(new Crystal(childX, childY, this.generation + 1));
+                    }
+                }
+            }
+            
+            display() {
+                p.push();
+                p.translate(this.center.x, this.center.y);
+                p.rotate(this.rotation);
+                
+                const currentMaturity = Math.min(this.maturity, 1);
+                const pulse = 1 + p.sin(this.pulsePhase) * 0.1;
+                
+                for (let layer = 0; layer < this.points.length; layer++) {
+                    const layerPoints = this.points[layer];
+                    const alpha = p.map(layer, 0, this.points.length - 1, 200, 60);
+                    
+                    // Iridescent color shift
+                    let hueShift = (p.sin(time + layer * 0.5) + 1) * 30;
+                    let tempColor = p.color(this.color.toString());
+                    tempColor.setAlpha(alpha * currentMaturity);
+                    
+                    p.fill(tempColor);
+                    p.stroke(255, alpha * 0.4 * currentMaturity);
+                    p.strokeWeight(0.8);
+                    
+                    p.beginShape();
+                    for (let point of layerPoints) {
+                        const scaledPoint = p5.Vector.mult(point, currentMaturity * pulse);
+                        p.vertex(scaledPoint.x, scaledPoint.y);
+                    }
+                    p.endShape(p.CLOSE);
+                    
+                    // Enhanced shimmer
+                    if (p.random() > 0.95) {
+                        const randomPoint = p.random(layerPoints);
+                        const scaledPoint = p5.Vector.mult(randomPoint, currentMaturity * pulse);
+                        p.fill(255, 200 * currentMaturity);
+                        p.noStroke();
+                        p.circle(scaledPoint.x, scaledPoint.y, p.random(2, 5));
+                    }
+                }
+                p.pop();
+            }
+        }
+        
+        p.setup = () => {
+            p.createCanvas(p.windowWidth, p.windowHeight);
+            p.colorMode(p.RGB);
+            
+            // Initial seed crystals
+            for (let i = 0; i < 3; i++) {
+                crystals.push(new Crystal(
+                    p.random(p.width * 0.2, p.width * 0.8),
+                    p.random(p.height * 0.2, p.height * 0.8)
+                ));
+            }
+        };
+        
+        p.draw = () => {
+            p.background(5, 8, 12);
+            time += 0.01;
+            
+            // Background field effect
+            for (let i = 0; i < 3; i++) {
+                p.stroke(p.random(bismuthPalette));
+                p.strokeWeight(0.3);
+                let x1 = p.noise(time * 0.1 + i) * p.width;
+                let y1 = p.noise(time * 0.1 + i + 100) * p.height;
+                let x2 = p.noise(time * 0.1 + i + 200) * p.width;
+                let y2 = p.noise(time * 0.1 + i + 300) * p.height;
+                p.line(x1, y1, x2, y2);
+            }
+            
+            for (let crystal of crystals) {
+                crystal.update();
+                crystal.display();
+            }
+            
+            // Clean up old crystals
+            crystals = crystals.filter(crystal => crystal.maturity < 5);
+        };
+        
+        p.mousePressed = () => {
+            if (p.mouseButton === p.LEFT) {
+                crystals.push(new Crystal(p.mouseX, p.mouseY));
+            }
+            if (p.mouseButton === p.RIGHT) {
+                // Clear old crystals
+                crystals = crystals.filter(crystal => crystal.generation === 0 && crystal.maturity < 0.5);
+            }
+        };
+        
+        p.windowResized = () => {
+            p.resizeCanvas(p.windowWidth, p.windowHeight);
+        };
+    };
+
+    // --- SKETCH 1: VERLET CLOTH ---
+    const sketch1 = (p) => {
+        class Point {
+            constructor(x, y) { 
+                this.pos = p.createVector(x, y); 
+                this.prevPos = p.createVector(x, y); 
+                this.acc = p.createVector(0, 0); 
+                this.isPinned = false; 
+            }
+            update(gravity) { 
+                if (this.isPinned) return; 
+                let vel = p5.Vector.sub(this.pos, this.prevPos); 
+                vel.mult(0.99); 
+                this.prevPos.set(this.pos); 
+                let newPos = p5.Vector.add(this.pos, vel); 
+                newPos.add(this.acc); 
+                newPos.add(gravity); 
+                this.pos.set(newPos); 
+                this.acc.mult(0); 
+            }
+            constrain() { 
+                if (this.isPinned) return; 
+                if (this.pos.y > p.height) this.pos.y = p.height; 
+                if (this.pos.x < 0) this.pos.x = 0; 
+                if (this.pos.x > p.width) this.pos.x = p.width; 
+            }
+        }
+        
+        class Stick {
+            constructor(p1, p2) { 
+                this.p1 = p1; 
+                this.p2 = p2; 
+                this.length = p5.Vector.dist(p1.pos, p2.pos); 
+            }
+            update() { 
+                const diff = p5.Vector.sub(this.p1.pos, this.p2.pos); 
+                const dist = diff.mag(); 
+                if (dist === 0) return; 
+                const diffRatio = (this.length - dist) / dist / 2; 
+                const offset = diff.mult(diffRatio); 
+                if (!this.p1.isPinned) { this.p1.pos.add(offset); } 
+                if (!this.p2.isPinned) { this.p2.pos.sub(offset); } 
+            }
+            display() { 
+                p.stroke(244, 241, 235, 180);
+                p.strokeWeight(1);
+                p.line(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y); 
+            }
+        }
+        
+        let points = []; 
+        let sticks = []; 
+        const gravity = new p5.Vector(0, 0.5); 
+        const physicsAccuracy = 5;
+        
+        p.setup = () => {
+            p.createCanvas(p.windowWidth, p.windowHeight);
+            points = []; 
+            sticks = [];
+            const cols = 40; 
+            const rows = 25; 
+            const spacing = 20;
+            
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    let px = p.width / 2 - (cols * spacing) / 2 + x * spacing;
+                    let py = 50 + y * spacing;
+                    let point = new Point(px, py);
+                    if (y === 0) { point.isPinned = true; }
+                    points.push(point);
+                    if (x > 0) { sticks.push(new Stick(point, points[points.length - 2])); }
+                    if (y > 0) { sticks.push(new Stick(point, points[points.length - 1 - cols])); }
+                }
+            }
+        };
+        
+        p.draw = () => {
+            p.background(10, 10, 10);
+            
+            for (const point of points) { point.update(gravity); }
+            for (let i = 0; i < physicsAccuracy; i++) { 
+                for (const stick of sticks) { stick.update(); } 
+                for (const point of points) { point.constrain(); } 
+            }
+            
+            if (p.mouseIsPressed) {
+                const mouseVec = p.createVector(p.mouseX, p.mouseY);
+                if (p.mouseButton === p.LEFT) { 
+                    const prevMouseVec = p.createVector(p.pmouseX, p.pmouseY); 
+                    const mouseVel = p5.Vector.sub(mouseVec, prevMouseVec); 
+                    mouseVel.mult(0.5); 
+                    for (const point of points) { 
+                        if (p5.Vector.dist(point.pos, mouseVec) < 30) { 
+                            point.prevPos.sub(mouseVel); 
+                        } 
+                    } 
+                }
+                if (p.mouseButton === p.RIGHT) { 
+                    for (let i = sticks.length - 1; i >= 0; i--) { 
+                        if (p5.Vector.dist(sticks[i].p1.pos, mouseVec) < 20 || 
+                            p5.Vector.dist(sticks[i].p2.pos, mouseVec) < 20) { 
+                            sticks.splice(i, 1); 
+                        } 
+                    } 
+                }
+            }
+            
+            for (const stick of sticks) { stick.display(); }
+        };
+        
+        p.windowResized = () => { 
+            p.resizeCanvas(p.windowWidth, p.windowHeight); 
+            p.setup(); 
+        };
+    };
+
+    // --- SKETCH 2: FLOW FIELD ---
+    const sketch2 = (p) => {
+        let particles = []; 
+        let timeOffset = 0;
+        
+        class Particle {
+            constructor() { 
+                this.pos = p.createVector(p.random(p.width), p.random(p.height)); 
+                this.vel = p.createVector(0, 0); 
+                this.acc = p.createVector(0, 0); 
+                this.maxSpeed = 2; 
+                this.color = p.color(p.random(personalPalette)); 
+                this.color.setAlpha(200); 
+                this.prevPos = this.pos.copy(); 
+            }
+            update() { 
+                this.vel.add(this.acc); 
+                this.vel.limit(this.maxSpeed); 
+                this.pos.add(this.vel); 
+                this.acc.mult(0); 
+            }
+            applyForce(force) { this.acc.add(force); }
+            follow(flowFieldAngle) { 
+                let force = p5.Vector.fromAngle(flowFieldAngle); 
+                force.setMag(0.1); 
+                this.applyForce(force); 
+            }
+            display() { 
+                p.stroke(this.color); 
+                p.strokeWeight(1.5); 
+                p.line(this.pos.x, this.pos.y, this.prevPos.x, this.prevPos.y); 
+                this.updatePrev(); 
+            }
+            updatePrev() { this.prevPos.x = this.pos.x; this.prevPos.y = this.pos.y; }
+            edges() { 
+                if (this.pos.x > p.width) { this.pos.x = 0; this.updatePrev(); } 
+                if (this.pos.x < 0) { this.pos.x = p.width; this.updatePrev(); } 
+                if (this.pos.y > p.height) { this.pos.y = 0; this.updatePrev(); } 
+                if (this.pos.y < 0) { this.pos.y = p.height; this.updatePrev(); } 
+            }
+        }
+        
+        p.setup = () => { 
+            p.createCanvas(p.windowWidth, p.windowHeight); 
+            p.background('#0a0a0a'); 
+            for (let i = 0; i < 500; i++) { 
+                particles.push(new Particle()); 
+            } 
+        };
+        
+        p.draw = () => { 
+            p.background(10, 10, 10, 8); 
+            const noiseScale = 0.005; 
+            for (let particle of particles) { 
+                let angle = p.noise(particle.pos.x * noiseScale, particle.pos.y * noiseScale, timeOffset) * p.TWO_PI * 2; 
+                particle.follow(angle); 
+                particle.update(); 
+                particle.edges(); 
+                particle.display(); 
+            } 
+            timeOffset += 0.0005; 
+        };
+        
+        p.windowResized = () => { 
+            p.resizeCanvas(p.windowWidth, p.windowHeight); 
+            p.background('#0a0a0a'); 
+            particles = []; 
+            for (let i = 0; i < 500; i++) { 
+                particles.push(new Particle()); 
+            } 
+        };
+    };
+
+    // --- SKETCH 3: CONWAY'S GAME OF LIFE ---
+    const sketch3 = (p) => {
+        let grid; 
+        let cols, rows; 
+        let resolution = 10; 
+        let isPlaying = false;
+        
+        function make2DArray(c, r) { 
+            let arr = new Array(c); 
+            for (let i = 0; i < arr.length; i++) { 
+                arr[i] = new Array(r); 
+            } 
+            return arr; 
+        }
+        
+        p.setup = () => { 
+            p.createCanvas(p.windowWidth, p.windowHeight); 
+            cols = p.floor(p.width / resolution); 
+            rows = p.floor(p.height / resolution); 
+            grid = make2DArray(cols, rows); 
+            p.resetGrid(); 
+        };
+        
+        p.resetGrid = () => { 
+            for (let i = 0; i < cols; i++) { 
+                for (let j = 0; j < rows; j++) { 
+                    grid[i][j] = 0; 
+                } 
+            } 
+        };
+        
+        p.draw = () => { 
+            p.background(10, 10, 10); 
+            for (let i = 0; i < cols; i++) { 
+                for (let j = 0; j < rows; j++) { 
+                    let x = i * resolution; 
+                    let y = j * resolution; 
+                    if (grid[i][j] == 1) { 
+                        p.fill(244, 241, 235); 
+                        p.noStroke(); 
+                        p.rect(x, y, resolution - 1, resolution - 1); 
+                    } 
+                } 
+            } 
+            if (isPlaying) { 
+                p.computeNextGeneration(); 
+            } 
+        };
+        
+        p.computeNextGeneration = () => { 
+            let next = make2DArray(cols, rows); 
+            for (let i = 0; i < cols; i++) { 
+                for (let j = 0; j < rows; j++) { 
+                    let state = grid[i][j]; 
+                    let neighbors = p.countNeighbors(i, j); 
+                    if (state == 0 && neighbors == 3) { 
+                        next[i][j] = 1; 
+                    } else if (state == 1 && (neighbors < 2 || neighbors > 3)) { 
+                        next[i][j] = 0; 
+                    } else { 
+                        next[i][j] = state; 
+                    } 
+                } 
+            } 
+            grid = next; 
+        };
+        
+        p.countNeighbors = (x, y) => { 
+            let sum = 0; 
+            for (let i = -1; i < 2; i++) { 
+                for (let j = -1; j < 2; j++) { 
+                    let col = (x + i + cols) % cols; 
+                    let row = (y + j + rows) % rows; 
+                    sum += grid[col][row]; 
+                } 
+            } 
+            sum -= grid[x][y]; 
+            return sum; 
+        };
+        
+        p.mousePressed = () => { 
+            if (p.mouseButton === p.LEFT && p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) { 
+                let col = p.floor(p.mouseX / resolution); 
+                let row = p.floor(p.mouseY / resolution); 
+                grid[col][row] = grid[col][row] === 0 ? 1 : 0; 
+            } 
+        };
+        
+        p.mouseDragged = () => { 
+            if (p.mouseButton === p.LEFT && p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) { 
+                let col = p.floor(p.mouseX / resolution); 
+                let row = p.floor(p.mouseY / resolution); 
+                grid[col][row] = 1; 
+            } 
+        };
+        
+        p.keyPressed = () => { 
+            if (p.key === ' ') { 
+                isPlaying = !isPlaying; 
+            } 
+            if (p.key === 'r' || p.key === 'R') { 
+                p.resetGrid(); 
+                isPlaying = false; 
+            } 
+        };
+        
+        p.windowResized = () => { 
+            p.resizeCanvas(p.windowWidth, p.windowHeight); 
+            p.setup(); 
+        };
+    };
+
+    // --- SKETCH 5: INTERROBANG (SIMPLE VERSION) ---
+    const sketch5 = (p) => {
+        let characters = [];
+        
+        class Character {
+            constructor(char, x, y) { 
+                this.char = char; 
+                this.pos = p.createVector(x, y); 
+                this.target = p.createVector(x, y); 
+                this.vel = p.createVector(); 
+                this.acc = p.createVector(); 
+                this.maxSpeed = 10; 
+                this.maxForce = 1; 
+            }
+            behaviors() { 
+                let seek = this.arrive(this.target); 
+                let mouse = p.createVector(p.mouseX, p.mouseY); 
+                let flee = this.flee(mouse); 
+                seek.mult(0.2); 
+                flee.mult(5); 
+                this.applyForce(seek); 
+                this.applyForce(flee); 
+            }
+            applyForce(f) { this.acc.add(f); }
+            update() { 
+                this.pos.add(this.vel); 
+                this.vel.add(this.acc); 
+                this.acc.mult(0); 
+            }
+            display() { 
+                p.text(this.char, this.pos.x, this.pos.y); 
+            }
+            arrive(target) { 
+                let desired = p5.Vector.sub(target, this.pos); 
+                let d = desired.mag(); 
+                let speed = this.maxSpeed; 
+                if (d < 100) { 
+                    speed = p.map(d, 0, 100, 0, this.maxSpeed); 
+                } 
+                desired.setMag(speed); 
+                let steer = p5.Vector.sub(desired, this.vel); 
+                steer.limit(this.maxForce); 
+                return steer; 
+            }
+            flee(target) { 
+                let desired = p5.Vector.sub(target, this.pos); 
+                let d = desired.mag(); 
+                if (d < 50) { 
+                    desired.setMag(this.maxSpeed); 
+                    desired.mult(-1); 
+                    let steer = p5.Vector.sub(desired, this.vel); 
+                    steer.limit(this.maxForce); 
+                    return steer; 
+                } else { 
+                    return p.createVector(0, 0); 
+                } 
+            }
+        }
+        
+        p.setup = () => { 
+            p.createCanvas(p.windowWidth, p.windowHeight); 
+            p.textAlign(p.CENTER, p.CENTER); 
+            p.textSize(20); 
+            p.fill(51, 51, 51); 
+            let spacing = 30; 
+            characters = []; 
+            for (let x = 0; x < p.width; x += spacing) { 
+                for (let y = 0; y < p.height; y += spacing) { 
+                    let char = p.random() > 0.5 ? '?' : '!'; 
+                    characters.push(new Character(char, x, y)); 
+                } 
+            } 
+        };
+        
+        p.draw = () => { 
+            p.background(244, 241, 235); 
+            for (let char of characters) { 
+                char.behaviors(); 
+                char.update(); 
+                char.display(); 
+            } 
+        };
+        
+        p.windowResized = () => { 
+            p.resizeCanvas(p.windowWidth, p.windowHeight); 
+            p.setup(); 
+        };
+    };
+    
+    // --- SKETCH 6: PARTICLE ADVECTION ---
+    const sketch6 = (p) => {
+        let particles = [];
+        const numParticles = 1500;
+        let time = 0;
+        const fireflyPalette = ['#fdfd96', '#ffdab9'];
+
+        class AdvectionParticle {
+            constructor() {
+                this.pos = p.createVector(p.random(p.width), p.random(p.height));
+                this.vel = p.createVector(0, 0);
+                this.lifespan = p.random(100, 255);
+                this.color = p.color(p.random(fireflyPalette));
+            }
+            
+            update(noiseScale, noiseStrength) {
+                let angle = p.noise(this.pos.x * noiseScale, this.pos.y * noiseScale, time) * p.TWO_PI * 4;
+                let force = p5.Vector.fromAngle(angle);
+                force.mult(noiseStrength);
+                
+                let mouse = p.createVector(p.mouseX, p.mouseY);
+                let toMouse = p5.Vector.sub(this.pos, mouse);
+                let dist = toMouse.mag();
+                if(dist < 100) {
+                    let mouseForce = toMouse.copy().normalize().mult(p.map(dist, 0, 100, 5, 0));
+                    force.add(mouseForce);
+                }
+                
+                this.vel.add(force);
+                this.vel.limit(4);
+                this.pos.add(this.vel);
+                this.vel.mult(0.95);
+                this.lifespan -= 0.5;
+            }
+            
+            display() {
+                this.color.setAlpha(this.lifespan);
+                p.stroke(this.color);
+                p.point(this.pos.x, this.pos.y);
+            }
+            
+            respawn() {
+                if (this.lifespan < 0) {
+                    this.pos = p.createVector(p.random(p.width), p.random(p.height));
+                    this.lifespan = 255;
+                }
+            }
+        }
+
+        p.setup = () => {
+            p.createCanvas(p.windowWidth, p.windowHeight);
+            p.strokeWeight(3);
+            for (let i = 0; i < numParticles; i++) {
+                particles.push(new AdvectionParticle());
+            }
+            p.background(10,10,10);
+        };
+        
+        p.draw = () => {
+            p.background(10, 10, 10, 50);
+            time += 0.005;
+            for (let particle of particles) {
+                particle.update(0.005, 0.1);
+                particle.respawn();
+                particle.display();
+            }
+        };
+        
+        p.windowResized = () => { 
+            p.resizeCanvas(p.windowWidth, p.windowHeight); 
+            particles = []; 
+            for (let i = 0; i < numParticles; i++) { 
+                particles.push(new AdvectionParticle()); 
+            } 
+            p.background(10,10,10); 
+        };
+    };
+
+    // --- SKETCH 7: LIQUID MIRROR ---
+    const sketch7 = (p) => {
+        let grid = [];
+        let cols, rows;
+        const spacing = 15;
+
+        class GridPoint {
+            constructor(x, y) { 
+                this.originalPos = p.createVector(x, y); 
+                this.pos = p.createVector(x, y); 
+                this.vel = p.createVector(); 
+            }
+            
+            update() {
+                let mouse = p.createVector(p.mouseX, p.mouseY);
+                let toMouse = p5.Vector.sub(mouse, this.pos);
+                let dist = toMouse.mag();
+                let force = p.createVector();
+                
+                if (dist < 150) {
+                    let repel = toMouse.copy();
+                    repel.normalize();
+                    repel.mult(-1);
+                    let strength = p.map(dist, 0, 150, 15, 0);
+                    repel.mult(strength);
+                    force.add(repel);
+                }
+                
+                let toOriginal = p5.Vector.sub(this.originalPos, this.pos);
+                toOriginal.mult(0.1);
+                force.add(toOriginal);
+                
+                this.vel.add(force);
+                this.vel.mult(0.85);
+                this.pos.add(this.vel);
+            }
+        }
+
+        p.setup = () => {
+            p.createCanvas(p.windowWidth, p.windowHeight);
+            cols = p.floor(p.width / spacing) + 2;
+            rows = p.floor(p.height / spacing) + 2;
+            grid = [];
+            
+            for (let i = 0; i < cols; i++) {
+                grid[i] = [];
+                for (let j = 0; j < rows; j++) {
+                    grid[i][j] = new GridPoint(i * spacing - spacing/2, j * spacing - spacing/2);
+                }
+            }
+        };
+
+        p.draw = () => {
+            p.background(10, 10, 10);
+            p.noStroke();
+            
+            for (let i = 0; i < cols; i++) { 
+                for (let j = 0; j < rows; j++) { 
+                    grid[i][j].update(); 
+                } 
+            }
+            
+            for (let i = 0; i < cols - 1; i++) {
+                for (let j = 0; j < rows - 1; j++) {
+                    let p1 = grid[i][j].pos; 
+                    let p2 = grid[i + 1][j].pos; 
+                    let p3 = grid[i + 1][j + 1].pos; 
+                    let p4 = grid[i][j + 1].pos;
+                    
+                    let v1 = p5.Vector.sub(p2, p1); 
+                    let v2 = p5.Vector.sub(p4, p1);
+                    let normal = v1.cross(v2);
+                    let brightness = p.map(normal.z, -100, 100, 20, 255);
+                    
+                    p.fill(brightness);
+                    p.quad(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y);
+                }
+            }
+        };
+        
+        p.windowResized = () => { 
+            p.resizeCanvas(p.windowWidth, p.windowHeight); 
+            p.setup(); 
+        };
+    };
+
+    // --- SKETCH 8: SELENIUM PHOTOCONDUCTIVE FIELD ---
+    const sketch8 = (p) => {
+        let nodes = [];
+        let connections = [];
+        let lightSources = [];
+        const nodeSpacing = 25;
+        
+        class PhotoNode {
+            constructor(x, y) {
+                this.pos = p.createVector(x, y);
+                this.basePos = p.createVector(x, y);
+                this.conductivity = 0;
+                this.maxConductivity = 0;
+                this.lightLevel = 0;
+                this.pulsePhase = p.random(p.TWO_PI);
+                this.neighbors = [];
+                this.vibration = p.createVector();
+            }
+            
+            update() {
+                // Calculate light exposure from mouse and other sources
+                let totalLight = 0;
+                let mouseLight = this.calculateLightFrom(p.mouseX, p.mouseY, 120);
+                totalLight += mouseLight;
+                
+                for (let source of lightSources) {
+                    totalLight += this.calculateLightFrom(source.x, source.y, source.intensity);
+                }
+                
+                this.lightLevel = p.constrain(totalLight, 0, 1);
+                
+                // Conductivity increases dramatically with light (selenium property)
+                let targetConductivity = p.pow(this.lightLevel, 0.3) * 255;
+                this.conductivity = p.lerp(this.conductivity, targetConductivity, 0.1);
+                this.maxConductivity = p.max(this.maxConductivity * 0.995, this.conductivity);
+                
+                // Subtle vibration based on conductivity
+                this.pulsePhase += 0.05 + this.conductivity * 0.001;
+                this.vibration.set(
+                    p.sin(this.pulsePhase) * this.conductivity * 0.02,
+                    p.cos(this.pulsePhase * 1.3) * this.conductivity * 0.02
+                );
+                this.pos = p5.Vector.add(this.basePos, this.vibration);
+            }
+            
+            calculateLightFrom(x, y, maxDistance) {
+                let distance = p.dist(this.pos.x, this.pos.y, x, y);
+                if (distance > maxDistance) return 0;
+                return p.map(distance, 0, maxDistance, 1, 0);
+            }
+            
+            display() {
+                // Node glow based on conductivity
+                let alpha = p.map(this.conductivity, 0, 255, 20, 200);
+                let size = p.map(this.conductivity, 0, 255, 2, 8);
+                
+                // Color shifts from dark selenium to bright conductive state
+                let r = p.map(this.conductivity, 0, 255, 80, 255);
+                let g = p.map(this.conductivity, 0, 255, 80, 200);
+                let b = p.map(this.conductivity, 0, 255, 80, 100);
+                
+                p.fill(r, g, b, alpha);
+                p.noStroke();
+                p.circle(this.pos.x, this.pos.y, size);
+                
+                // Trail effect for high conductivity nodes
+                if (this.maxConductivity > 50) {
+                    p.fill(r, g, b, 30);
+                    p.circle(this.pos.x, this.pos.y, size * 2);
+                }
+            }
+        }
+        
+        class Connection {
+            constructor(node1, node2) {
+                this.node1 = node1;
+                this.node2 = node2;
+                this.strength = 0;
+            }
+            
+            update() {
+                // Connection strength based on conductivity of both nodes
+                let avgConductivity = (this.node1.conductivity + this.node2.conductivity) / 2;
+                this.strength = avgConductivity;
+            }
+            
+            display() {
+                if (this.strength < 10) return;
+                
+                let alpha = p.map(this.strength, 0, 255, 0, 150);
+                let weight = p.map(this.strength, 0, 255, 0.5, 3);
+                
+                p.stroke(255, 220, 150, alpha);
+                p.strokeWeight(weight);
+                p.line(this.node1.pos.x, this.node1.pos.y, 
+                       this.node2.pos.x, this.node2.pos.y);
+                
+                // Flowing energy effect
+                if (this.strength > 100) {
+                    let flowPos = p.lerp(0, 1, (p.sin(p.frameCount * 0.1) + 1) * 0.5);
+                    let flowX = p.lerp(this.node1.pos.x, this.node2.pos.x, flowPos);
+                    let flowY = p.lerp(this.node1.pos.y, this.node2.pos.y, flowPos);
+                    
+                    p.fill(255, 255, 200);
+                    p.noStroke();
+                    p.circle(flowX, flowY, 4);
+                }
+            }
+        }
+        
+        class LightSource {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.intensity = 80;
+                this.life = 300;
+            }
+            
+            update() {
+                this.life--;
+                this.intensity *= 0.998;
+            }
+            
+            display() {
+                let alpha = p.map(this.life, 0, 300, 0, 100);
+                p.fill(255, 255, 200, alpha);
+                p.noStroke();
+                p.circle(this.x, this.y, this.intensity * 0.5);
+            }
+            
+            isDead() {
+                return this.life <= 0;
+            }
+        }
+        
+        p.setup = () => {
+            p.createCanvas(p.windowWidth, p.windowHeight);
+            
+            // Create grid of photosensitive nodes
+            let cols = p.floor(p.width / nodeSpacing);
+            let rows = p.floor(p.height / nodeSpacing);
+            
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    let x = i * nodeSpacing + nodeSpacing / 2;
+                    let y = j * nodeSpacing + nodeSpacing / 2;
+                    nodes.push(new PhotoNode(x, y));
+                }
+            }
+            
+            // Create connections between nearby nodes
+            for (let node of nodes) {
+                for (let other of nodes) {
+                    let distance = p5.Vector.dist(node.pos, other.pos);
+                    if (distance > 0 && distance < nodeSpacing * 1.5) {
+                        connections.push(new Connection(node, other));
+                        node.neighbors.push(other);
+                    }
+                }
+            }
+        };
+        
+        p.draw = () => {
+            p.background(15, 20, 25);
+            
+            // Update and display connections first (background layer)
+            for (let connection of connections) {
+                connection.update();
+                connection.display();
+            }
+            
+            // Update and display nodes
+            for (let node of nodes) {
+                node.update();
+                node.display();
+            }
+            
+            // Update and display light sources
+            for (let i = lightSources.length - 1; i >= 0; i--) {
+                lightSources[i].update();
+                lightSources[i].display();
+                
+                if (lightSources[i].isDead()) {
+                    lightSources.splice(i, 1);
+                }
+            }
+            
+            // Mouse light indicator
+            p.fill(255, 255, 200, 50);
+            p.noStroke();
+            p.circle(p.mouseX, p.mouseY, 240);
+        };
+        
+        p.mousePressed = () => {
+            lightSources.push(new LightSource(p.mouseX, p.mouseY));
+        };
+        
+        p.windowResized = () => {
+            p.resizeCanvas(p.windowWidth, p.windowHeight);
+            nodes = [];
+            connections = [];
+            lightSources = [];
+            p.setup();
+        };
+    };
+
+    // --- INSTANTIATE SKETCHES ---
+    new p5(sketch0, 'sketch0-container');
+    new p5(sketch1, 'sketch1-container');
+    new p5(sketch2, 'sketch2-container');
+    new p5(sketch3, 'sketch3-container');
+    new p5(sketch5, 'sketch5-container');
+    new p5(sketch6, 'sketch6-container');
+    new p5(sketch7, 'sketch7-container');
+    new p5(sketch8, 'sketch8-container');
+    
+    // Enhanced navigation
+    document.addEventListener('DOMContentLoaded', () => {
+        const sections = document.querySelectorAll('section');
+        const navDots = document.querySelectorAll('.nav-dot');
+        
+        // Navigation dot clicks
+        navDots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                if (sections[index]) {
+                    sections[index].scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Update active dot on scroll with better detection
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const index = Array.from(sections).indexOf(entry.target);
+                    navDots.forEach(dot => dot.classList.remove('active'));
+                    if (navDots[index]) {
+                        navDots[index].classList.add('active');
+                    }
+                }
+            });
+        }, { 
+            threshold: 0.3,
+            rootMargin: '-10% 0px -10% 0px'
+        });
+        
+        sections.forEach(section => observer.observe(section));
+        
+        // Keyboard navigation for accessibility
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+                e.preventDefault();
+                let currentActive = document.querySelector('.nav-dot.active');
+                let currentIndex = Array.from(navDots).indexOf(currentActive);
+                let nextIndex = Math.min(currentIndex + 1, sections.length - 1);
+                if (sections[nextIndex]) {
+                    sections[nextIndex].scrollIntoView({ behavior: 'smooth' });
+                }
+            } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+                e.preventDefault();
+                let currentActive = document.querySelector('.nav-dot.active');
+                let currentIndex = Array.from(navDots).indexOf(currentActive);
+                let prevIndex = Math.max(currentIndex - 1, 0);
+                if (sections[prevIndex]) {
+                    sections[prevIndex].scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        });
+        
+        // Force scroll to last section function (for debugging)
+        window.scrollToLast = () => {
+            const lastSection = sections[sections.length - 1];
+            if (lastSection) {
+                lastSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        };
+        
+        // Add manual scroll override for debugging
+        window.scrollToSection = (index) => {
+            if (sections[index]) {
+                // Temporarily disable scroll-snap
+                document.documentElement.style.scrollSnapType = 'none';
+                sections[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Re-enable scroll-snap after animation
+                setTimeout(() => {
+                    document.documentElement.style.scrollSnapType = 'y proximity';
+                }, 1000);
+            }
+        };
+        
+        console.log(`Found ${sections.length} sections and ${navDots.length} nav dots`);
+    });
+
+    // Disable right-click context menu
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    </script>
+</body>
+</html>
