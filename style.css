@@ -92,3 +92,55 @@ section {
     background: #f4f1eb;
     transform: scale(1.2);
 }
+
+.nav-dot.active {
+    background: #f4f1eb;
+    transform: scale(1.2);
+}
+
+/* Name Section Styles */
+#name-section {
+    background: linear-gradient(180deg, #f5f3ef 0%, #e8e4dc 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.embossed-name {
+    font-size: clamp(80px, 12vw, 160px);
+    font-family: 'Alex Brush', cursive;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: #e0dcd4;
+    text-shadow:
+        1px 1px 2px rgba(255, 255, 255, 0.9),
+        -1px -1px 2px rgba(0, 0, 0, 0.25),
+        2px 2px 4px rgba(0, 0, 0, 0.15),
+        -2px -2px 3px rgba(255, 255, 255, 0.8),
+        3px 3px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.embossed-name::before {
+    content: 'Kaitlin';
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: transparent;
+    text-shadow:
+        -1px -1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.embossed-name::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.4) 50%,
+            transparent 70%);
+    pointer-events: none;
+}
