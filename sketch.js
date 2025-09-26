@@ -951,6 +951,192 @@ const sketch9 = (p) => {
   };
 };
 
+// --- SKETCH 10: ASCII SYNTHESIS ---
+const sketch10 = (p) => {
+  let asciiArt;
+  const density = "Ñ@#W$9876543210?!abc;:+=-,._ ";
+
+  class AsciiArt {
+    constructor() {
+      this.charSize = 12;
+      this.cols = p.floor(p.width / this.charSize);
+      this.rows = p.floor(p.height / this.charSize);
+      this.brightnessGrid = Array(this.cols)
+        .fill(0)
+        .map(() => Array(this.rows).fill(0));
+      this.generatePearBrightness();
+    }
+
+    generatePearBrightness() {
+      for (let i = 0; i < this.cols; i++) {
+        for (let j = 0; j < this.rows; j++) {
+          // Convert grid coords to normalized canvas space [-1, 1]
+          let x = p.map(i, 0, this.cols, -1.2, 1.2);
+          let y = p.map(j, 0, this.rows, -1.2, 1.2);
+
+          // Pear shape using implicit equations
+          let pearBody = p.sqrt(x * x + p.pow(y - 0.1, 2));
+          let bodyShape = 1 - p.smoothstep(0.45, 0.5, pearBody);
+
+          let pearTop = p.sqrt(p.pow(x * 0.7, 2) + p.pow(y - 0.6, 2));
+          let topShape = 1 - p.smoothstep(0.2, 0.25, pearTop);
+
+          let stem = p.abs(x) < 0.05 && y > 0.6 && y < 1.0 ? 1 : 0;
+
+          let combinedShape = p.max(bodyShape, topShape);
+
+          // Add some noise for texture
+          let noiseVal = p.noise(i * 0.1, j * 0.1);
+          let brightness = p.constrain(
+            combinedShape * 255 - noiseVal * 50,
+            0,
+            255
+          );
+
+          this.brightnessGrid[i][j] = p.max(brightness, stem * 150);
+        }
+      }
+    }
+
+    display() {
+      for (let i = 0; i < this.cols; i++) {
+        for (let j = 0; j < this.rows; j++) {
+          let brightness = this.brightnessGrid[i][j];
+          if (brightness > 0) {
+            let densityMap = p.map(
+              p.mouseX,
+              0,
+              p.width,
+              0,
+              density.length - 1,
+              true
+            );
+            let charIndex = p.floor(
+              p.map(brightness, 0, 255, densityMap, 0, true)
+            );
+
+            let char = density.charAt(charIndex);
+
+            p.fill(30, p.map(brightness, 0, 255, 100, 255));
+            p.text(char, i * this.charSize, j * this.charSize);
+          }
+        }
+      }
+    }
+  }
+
+  p.setup = () => {
+    let container = document.getElementById("sketch10-container");
+    p.createCanvas(container.offsetWidth, container.offsetHeight).parent(
+      container
+    );
+
+    p.textFont("monospace");
+    p.textSize(12);
+    p.textAlign(p.LEFT, p.TOP);
+    p.noStroke();
+    asciiArt = new AsciiArt();
+  };
+
+  p.draw = () => {
+    p.background(244, 241, 235); // Match section background
+    asciiArt.display();
+  };
+
+  p.windowResized = () => {
+    let container = document.getElementById("sketch10-container");
+    p.resizeCanvas(container.offsetWidth, container.offsetHeight);
+    asciiArt = new AsciiArt();
+  };
+};
+
+// --- SKETCH 11: GENERATIVE EMBROIDERY ---
+const sketch11 = (p) => {
+  let lastPos;
+  let paperTexture;
+  const stitchSpacing = 15;
+  const threadPalette = ["#4a7c59", "#c44536", "#7a6c5d", "#e8c547", "#3066be"];
+  let currentThreadColor;
+
+  p.setup = () => {
+    p.createCanvas(p.windowWidth, p.windowHeight).parent("sketch11-container"); // This is the fix
+    paperTexture = createPaperTexture(p);
+    p.image(paperTexture, 0, 0);
+    lastPos = p.createVector(0, 0);
+    currentThreadColor = p.color(p.random(threadPalette));
+    currentThreadColor.setAlpha(200);
+  };
+
+  p.draw = () => {
+    let currentPos = p.createVector(p.mouseX, p.mouseY);
+
+    if (
+      p.dist(currentPos.x, currentPos.y, lastPos.x, lastPos.y) > stitchSpacing
+    ) {
+      drawStitch(p, currentPos.x, currentPos.y);
+      lastPos = currentPos;
+
+      // Occasionally change thread color
+      if (p.random() > 0.98) {
+        currentThreadColor = p.color(p.random(threadPalette));
+        currentThreadColor.setAlpha(200);
+      }
+    }
+  };
+
+  function drawStitch(p, x, y) {
+    let stitchSize = p.random(8, 12);
+    let angle = p.random(p.TWO_PI);
+    let patternType = p.floor(p.random(3));
+
+    p.push();
+    p.translate(x, y);
+    p.rotate(angle);
+    p.stroke(currentThreadColor);
+    p.strokeWeight(p.random(1.5, 2.5));
+
+    if (patternType === 0) {
+      // Simple X
+      p.line(-stitchSize, -stitchSize, stitchSize, stitchSize);
+      p.line(-stitchSize, stitchSize, stitchSize, -stitchSize);
+    } else if (patternType === 1) {
+      // Asterisk
+      p.line(-stitchSize, -stitchSize, stitchSize, stitchSize);
+      p.line(-stitchSize, stitchSize, stitchSize, -stitchSize);
+      p.line(0, -stitchSize * 1.2, 0, stitchSize * 1.2);
+      p.line(-stitchSize * 1.2, 0, stitchSize * 1.2, 0);
+    } else {
+      // Square stitch
+      p.noFill();
+      p.rect(-stitchSize / 2, -stitchSize / 2, stitchSize, stitchSize);
+      p.line(-stitchSize, -stitchSize, stitchSize, stitchSize);
+      p.line(-stitchSize, stitchSize, stitchSize, -stitchSize);
+    }
+
+    p.pop();
+  }
+
+  function createPaperTexture(p) {
+    let texture = p.createGraphics(p.width, p.height);
+    texture.background(233, 228, 217); // Base paper color from CSS
+    texture.loadPixels();
+    for (let i = 0; i < texture.width * texture.height * 4; i += 4) {
+      let grain = p.random(-15, 15);
+      texture.pixels[i] += grain;
+      texture.pixels[i + 1] += grain;
+      texture.pixels[i + 2] += grain;
+    }
+    texture.updatePixels();
+    return texture;
+  }
+
+  p.windowResized = () => {
+    p.resizeCanvas(p.windowWidth, p.windowHeight);
+    paperTexture = createPaperTexture(p);
+    p.image(paperTexture, 0, 0); // Redraw background
+  };
+};
+
 // --- GALLERY SETUP AND NAVIGATION ---
 document.addEventListener("DOMContentLoaded", () => {
   // --- INSTANTIATE SKETCHES ---
@@ -1007,200 +1193,6 @@ document.addEventListener("DOMContentLoaded", () => {
         sections[prevIndex].scrollIntoView({ behavior: "smooth" });
     }
   });
-
-  // --- SKETCH 10: ASCII SYNTHESIS ---
-  const sketch10 = (p) => {
-    let asciiArt;
-    const density = "Ñ@#W$9876543210?!abc;:+=-,._ ";
-
-    class AsciiArt {
-      constructor() {
-        this.charSize = 12;
-        this.cols = p.floor(p.width / this.charSize);
-        this.rows = p.floor(p.height / this.charSize);
-        this.brightnessGrid = Array(this.cols)
-          .fill(0)
-          .map(() => Array(this.rows).fill(0));
-        this.generatePearBrightness();
-      }
-
-      generatePearBrightness() {
-        for (let i = 0; i < this.cols; i++) {
-          for (let j = 0; j < this.rows; j++) {
-            // Convert grid coords to normalized canvas space [-1, 1]
-            let x = p.map(i, 0, this.cols, -1.2, 1.2);
-            let y = p.map(j, 0, this.rows, -1.2, 1.2);
-
-            // Pear shape using implicit equations
-            let pearBody = p.sqrt(x * x + p.pow(y - 0.1, 2));
-            let bodyShape = 1 - p.smoothstep(0.45, 0.5, pearBody);
-
-            let pearTop = p.sqrt(p.pow(x * 0.7, 2) + p.pow(y - 0.6, 2));
-            let topShape = 1 - p.smoothstep(0.2, 0.25, pearTop);
-
-            let stem = p.abs(x) < 0.05 && y > 0.6 && y < 1.0 ? 1 : 0;
-
-            let combinedShape = p.max(bodyShape, topShape);
-
-            // Add some noise for texture
-            let noiseVal = p.noise(i * 0.1, j * 0.1);
-            let brightness = p.constrain(
-              combinedShape * 255 - noiseVal * 50,
-              0,
-              255
-            );
-
-            this.brightnessGrid[i][j] = p.max(brightness, stem * 150);
-          }
-        }
-      }
-
-      display() {
-        for (let i = 0; i < this.cols; i++) {
-          for (let j = 0; j < this.rows; j++) {
-            let brightness = this.brightnessGrid[i][j];
-            if (brightness > 0) {
-              let densityMap = p.map(
-                p.mouseX,
-                0,
-                p.width,
-                0,
-                density.length - 1,
-                true
-              );
-              let charIndex = p.floor(
-                p.map(brightness, 0, 255, densityMap, 0, true)
-              );
-
-              let char = density.charAt(charIndex);
-
-              p.fill(30, p.map(brightness, 0, 255, 100, 255));
-              p.text(char, i * this.charSize, j * this.charSize);
-            }
-          }
-        }
-      }
-    }
-
-    p.setup = () => {
-      let container = document.getElementById("sketch10-container");
-      p.createCanvas(container.offsetWidth, container.offsetHeight).parent(
-        container
-      );
-
-      p.textFont("monospace");
-      p.textSize(12);
-      p.textAlign(p.LEFT, p.TOP);
-      p.noStroke();
-      asciiArt = new AsciiArt();
-    };
-
-    p.draw = () => {
-      p.background(244, 241, 235); // Match section background
-      asciiArt.display();
-    };
-
-    p.windowResized = () => {
-      let container = document.getElementById("sketch10-container");
-      p.resizeCanvas(container.offsetWidth, container.offsetHeight);
-      asciiArt = new AsciiArt();
-    };
-  };
-
-  // --- SKETCH 11: GENERATIVE EMBROIDERY ---
-  const sketch11 = (p) => {
-    let lastPos;
-    let paperTexture;
-    const stitchSpacing = 15;
-    const threadPalette = [
-      "#4a7c59",
-      "#c44536",
-      "#7a6c5d",
-      "#e8c547",
-      "#3066be",
-    ];
-    let currentThreadColor;
-
-    p.setup = () => {
-      p.createCanvas(p.windowWidth, p.windowHeight).parent(
-        "sketch11-container"
-      ); // This is the fix
-      paperTexture = createPaperTexture(p);
-      p.image(paperTexture, 0, 0);
-      lastPos = p.createVector(0, 0);
-      currentThreadColor = p.color(p.random(threadPalette));
-      currentThreadColor.setAlpha(200);
-    };
-
-    p.draw = () => {
-      let currentPos = p.createVector(p.mouseX, p.mouseY);
-
-      if (
-        p.dist(currentPos.x, currentPos.y, lastPos.x, lastPos.y) > stitchSpacing
-      ) {
-        drawStitch(p, currentPos.x, currentPos.y);
-        lastPos = currentPos;
-
-        // Occasionally change thread color
-        if (p.random() > 0.98) {
-          currentThreadColor = p.color(p.random(threadPalette));
-          currentThreadColor.setAlpha(200);
-        }
-      }
-    };
-
-    function drawStitch(p, x, y) {
-      let stitchSize = p.random(8, 12);
-      let angle = p.random(p.TWO_PI);
-      let patternType = p.floor(p.random(3));
-
-      p.push();
-      p.translate(x, y);
-      p.rotate(angle);
-      p.stroke(currentThreadColor);
-      p.strokeWeight(p.random(1.5, 2.5));
-
-      if (patternType === 0) {
-        // Simple X
-        p.line(-stitchSize, -stitchSize, stitchSize, stitchSize);
-        p.line(-stitchSize, stitchSize, stitchSize, -stitchSize);
-      } else if (patternType === 1) {
-        // Asterisk
-        p.line(-stitchSize, -stitchSize, stitchSize, stitchSize);
-        p.line(-stitchSize, stitchSize, stitchSize, -stitchSize);
-        p.line(0, -stitchSize * 1.2, 0, stitchSize * 1.2);
-        p.line(-stitchSize * 1.2, 0, stitchSize * 1.2, 0);
-      } else {
-        // Square stitch
-        p.noFill();
-        p.rect(-stitchSize / 2, -stitchSize / 2, stitchSize, stitchSize);
-        p.line(-stitchSize, -stitchSize, stitchSize, stitchSize);
-        p.line(-stitchSize, stitchSize, stitchSize, -stitchSize);
-      }
-
-      p.pop();
-    }
-
-    function createPaperTexture(p) {
-      let texture = p.createGraphics(p.width, p.height);
-      texture.background(233, 228, 217); // Base paper color from CSS
-      texture.loadPixels();
-      for (let i = 0; i < texture.width * texture.height * 4; i += 4) {
-        let grain = p.random(-15, 15);
-        texture.pixels[i] += grain;
-        texture.pixels[i + 1] += grain;
-        texture.pixels[i + 2] += grain;
-      }
-      texture.updatePixels();
-      return texture;
-    }
-
-    p.windowResized = () => {
-      p.resizeCanvas(p.windowWidth, p.windowHeight);
-      paperTexture = createPaperTexture(p);
-      p.image(paperTexture, 0, 0); // Redraw background
-    };
-  };
 
   // Disable right-click context menu
   document.addEventListener("contextmenu", (event) => event.preventDefault());
