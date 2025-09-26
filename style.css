@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
 html {
     scroll-snap-type: y mandatory;
@@ -53,6 +55,11 @@ section {
     pointer-events: none;
     letter-spacing: 0.5px;
     color: #f4f1eb;
+    opacity: 0;
+    /* Start hidden */
+    animation: fadeIn 0.8s ease-out forwards;
+    animation-delay: 0.5s;
+    /* Optional delay */
 }
 
 .section-title {
@@ -66,6 +73,10 @@ section {
     pointer-events: none;
     letter-spacing: 1px;
     color: #f4f1eb;
+    opacity: 0;
+    /* Start hidden */
+    animation: fadeIn 0.8s ease-out forwards;
+    animation-delay: 0.3s;
 }
 
 .nav-indicator {
@@ -100,47 +111,120 @@ section {
 
 /* Name Section Styles */
 #name-section {
-    background: linear-gradient(180deg, #f5f3ef 0%, #e8e4dc 100%);
+    /* Replace your existing background rule with this one */
+    background: linear-gradient(-45deg, #e8e4dc, #f5f3ef, #d1c7b8);
+    background-size: 400% 400%;
+    animation: slowGradient 15s ease infinite;
+    /* This applies the animation */
+
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .embossed-name {
-    font-size: clamp(80px, 12vw, 160px);
-    font-family: 'Alex Brush', cursive;
+    font-family: 'Great Vibes', cursive;
+    /* Use the new elegant font */
+    font-size: clamp(100px, 15vw, 200px);
+    /* Slightly larger for a script font */
     font-weight: 400;
-    letter-spacing: 0.01em;
-    color: #e0dcd4;
-    text-shadow:
-        1px 1px 2px rgba(255, 255, 255, 0.9),
-        -1px -1px 2px rgba(0, 0, 0, 0.25),
-        2px 2px 4px rgba(0, 0, 0, 0.15),
-        -2px -2px 3px rgba(255, 255, 255, 0.8),
-        3px 3px 6px rgba(0, 0, 0, 0.1);
+    /* Regular weight for this font */
+    color: rgba(0, 0, 0, 0.15);
+    /* Softened the color for a more subtle effect */
+    text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.9);
+    /* The highlight for the debossed effect */
+}
+
+@keyframes slowGradient {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- ASCII FRUIT STYLES --- */
+#ascii-fruit {
+    background-color: #f4f1eb;
+    /* Light background for magazine feel */
+    color: #333;
+    overflow: hidden;
+}
+
+.magazine-layout {
+    display: grid;
+    grid-template-columns: 60% 40%;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+}
+
+.magazine-art {
+    height: 100%;
     position: relative;
 }
 
-.embossed-name::before {
-    content: 'Kaitlin';
-    position: absolute;
-    top: 0;
-    left: 0;
-    color: transparent;
-    text-shadow:
-        -1px -1px 1px rgba(255, 255, 255, 0.5);
+/* Make canvas container specific to this section */
+#sketch10-container {
+    position: static;
+    /* Override absolute positioning */
 }
 
-.embossed-name::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(145deg,
-            transparent 30%,
-            rgba(255, 255, 255, 0.4) 50%,
-            transparent 70%);
-    pointer-events: none;
+.magazine-text {
+    padding: 4vw;
+    font-family: 'Georgia', serif;
+}
+
+.magazine-text .section-title {
+    position: static;
+    /* Override absolute positioning */
+    color: #0a0a0a;
+    opacity: 1;
+    /* Override fade-in for this layout */
+    animation: none;
+    margin-bottom: 20px;
+}
+
+.magazine-text .description {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #555;
+    max-width: 400px;
+    margin-bottom: 40px;
+}
+
+.magazine-text .instructions {
+    position: static;
+    /* Override absolute positioning */
+    opacity: 1;
+    animation: none;
+    color: #888;
+    font-size: 14px;
+    font-family: 'Menlo', 'Monaco', monospace;
+    /* Techy font */
+    text-transform: uppercase;
+}
+
+/* --- CROSS-STITCH STYLES --- */
+#cross-stitch {
+    background-color: #e9e4d9;
+    /* Base paper color */
 }
